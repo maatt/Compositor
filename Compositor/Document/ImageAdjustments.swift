@@ -88,10 +88,12 @@ nonisolated struct GradientMapSettings: Codable, Equatable, Sendable {
     func apply(_ image: CGImage) throws -> CGImage {
         guard isValid else { throw ProjectError.invalid }
         let (dark, light) = ends
+        func byte(_ from: Double, _ to: Double, _ t: Double) -> UInt8 {
+            UInt8(min(255, max(0, ((from + (to - from) * t) * 255).rounded())))
+        }
         let table: [UInt8] = (0...255).flatMap { index -> [UInt8] in
             let t = Double(index) / 255
-            return [dark.red + (light.red - dark.red) * t, dark.green + (light.green - dark.green) * t,
-                    dark.blue + (light.blue - dark.blue) * t].map { UInt8(min(255, max(0, ($0 * 255).rounded()))) }
+            return [byte(dark.red, light.red, t), byte(dark.green, light.green, t), byte(dark.blue, light.blue, t)]
         }
         return try ImageAdjustmentPixels.run(image) { pixels, width, height, stride in
             adjust_gradient_map(pixels, width, height, stride, table)
